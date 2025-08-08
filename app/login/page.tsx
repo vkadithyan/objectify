@@ -59,12 +59,12 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     // TODO: Implement Google login
-    toast.info('Google login coming soon!')
+    toast('Demo mode coming soon!', { icon: 'ℹ️' })
   }
 
   const handleGithubLogin = () => {
     // TODO: Implement GitHub login
-    toast.info('GitHub login coming soon!')
+    toast('GitHub login coming soon!', { icon: 'ℹ️' })
   }
 
   return (

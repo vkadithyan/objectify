@@ -10,21 +10,7 @@ import { Post } from '@/types/post'
 
 // Demo data with lots of objects and stories
 const mockPosts: Post[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    username: 'creative_soul',
-    userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-    imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=600&h=600&fit=crop',
-    mood: 'happy',
-    story: 'Meet Luna, my trusty coffee mug! She\'s been with me through countless late-night coding sessions and early morning meetings. Today she\'s feeling particularly cheerful, probably because I finally remembered to clean her properly. She says the warm water felt like a spa day! ☕✨',
-    likes: ['user2', 'user3', 'user4'],
-    comments: [
-      { id: '1', userId: 'user2', username: 'coffee_lover', text: 'Luna is absolutely adorable! ☕', createdAt: new Date() },
-      { id: '2', userId: 'user3', username: 'dev_mike', text: 'I have a similar relationship with my keyboard 😄', createdAt: new Date() }
-    ],
-    createdAt: new Date('2024-01-15T10:30:00Z')
-  },
+
   {
     id: '2',
     userId: 'user2',
@@ -398,7 +384,7 @@ const mockPosts: Post[] = [
     userId: 'user28',
     username: 'keychain_collector',
     userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-    imageUrl: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&h=600&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop',
     mood: 'nostalgic',
     story: 'This vintage keychain is feeling wonderfully nostalgic today! Each key tells a story - home, office, memories of places lived and loved. It jingles with the music of life\'s journeys and the promise of new doors to unlock. 🗝️🏠',
     likes: ['user4', 'user19', 'user24'],
@@ -463,18 +449,32 @@ export default function FeedPage() {
       
       // Demo mode: combine demo data with user-created posts from localStorage
       const userPosts = JSON.parse(localStorage.getItem('userPosts') || '[]')
-      const allPosts = [...userPosts, ...mockPosts].sort((a, b) => 
+      console.log('📱 User posts from localStorage:', userPosts)
+      
+      const sortedUserPosts = userPosts.sort((a: Post, b: Post) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
+      const sortedDemoData = mockPosts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      const allPosts = [...sortedUserPosts, ...sortedDemoData]
+      console.log('📋 All posts (user + demo):', allPosts.length, 'total posts')
       setPosts(allPosts)
       
     } catch (error) {
       console.error('[ERROR] Error fetching posts:', error)
       // Always fallback to demo data with any user posts
       const userPosts = JSON.parse(localStorage.getItem('userPosts') || '[]')
-      const allPosts = [...userPosts, ...mockPosts].sort((a, b) => 
+      console.log('📱 Fallback - User posts from localStorage:', userPosts)
+      
+      const sortedUserPosts = userPosts.sort((a: Post, b: Post) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
+      const sortedDemoData = mockPosts.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      const allPosts = [...sortedUserPosts, ...sortedDemoData]
+      console.log('📋 Fallback - All posts:', allPosts.length, 'total posts')
       setPosts(allPosts)
     } finally {
       setIsLoading(false)
@@ -483,6 +483,29 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchPosts()
+  }, [])
+
+  // Refresh posts when the page becomes visible (when user navigates back from create page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPosts()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Also refresh when window gets focus
+    const handleFocus = () => {
+      fetchPosts()
+    }
+    
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [fetchPosts])
 
   const handleLike = async (postId: string) => {
@@ -555,8 +578,25 @@ export default function FeedPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+      >
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          {/* Header */}
+          <motion.div 
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <h1 className="text-3xl font-bold gradient-text mb-2">Your Feed</h1>
+            <p className="text-gray-600">Discover amazing objects and their stories</p>
+          </motion.div>
+          
+          {/* Loading skeleton */}
           <div className="animate-pulse space-y-6">
             {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-xl p-6 shadow-sm">
@@ -576,21 +616,31 @@ export default function FeedPage() {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="min-h-screen bg-gray-50"
+    >
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <motion.header 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white shadow-sm border-b sticky top-0 z-10"
+      >
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-text">Objectify</span>
+              <span className="text-xl font-bold gradient-text">Feed</span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -601,25 +651,29 @@ export default function FeedPage() {
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Feed Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <motion.div
+        <motion.div 
+          className="space-y-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6"
+          transition={{ duration: 0.5, delay: 0.4 }}
         >
           {posts.map((post, index) => (
             <motion.div
               key={post.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ 
+                duration: 0.5, 
+                delay: 0.5 + (index * 0.1),
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
             >
-              <PostCard 
-                post={post} 
+              <PostCard
+                post={post}
                 onLike={handleLike}
                 isLiked={post.likes.includes('demo_user')}
               />
@@ -640,6 +694,6 @@ export default function FeedPage() {
           </div>
         )}
       </main>
-    </div>
+    </motion.div>
   )
 }

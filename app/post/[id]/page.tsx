@@ -218,6 +218,11 @@ export default function PostDetailPage() {
                 width={60}
                 height={60}
                 className="rounded-full"
+                onError={(e) => {
+                  // Fallback to a default avatar if the original fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+                }}
               />
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{post.username}</h2>
@@ -238,6 +243,11 @@ export default function PostDetailPage() {
               height={800}
               className="w-full h-96 md:h-[500px] object-cover"
               priority
+              onError={(e) => {
+                // Fallback to a placeholder image if the original fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=600&h=600&fit=crop';
+              }}
             />
             <div className="absolute top-6 right-6">
               <span className={`px-4 py-2 rounded-full text-lg font-medium ${moodColors[post.mood]} backdrop-blur-sm`}>

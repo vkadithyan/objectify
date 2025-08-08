@@ -77,12 +77,12 @@ export default function SignupPage() {
 
   const handleGoogleSignup = () => {
     // TODO: Implement Google signup
-    toast.info('Google signup coming soon!')
+    toast('Google signup coming soon!', { icon: 'ℹ️' })
   }
 
   const handleGithubSignup = () => {
     // TODO: Implement GitHub signup
-    toast.info('GitHub signup coming soon!')
+    toast('GitHub signup coming soon!', { icon: 'ℹ️' })
   }
 
   return (

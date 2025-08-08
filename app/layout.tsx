@@ -6,8 +6,8 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Objectify - Bring Your Objects to Life',
-  description: 'Upload objects and let AI create magical backstories for them. Share your object stories with the world!',
+  title: 'Objectify - AI-Powered Object Stories',
+  description: 'Transform your objects into captivating stories with AI',
   keywords: 'AI, storytelling, objects, social media, creativity',
 }
 
@@ -18,15 +18,36 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body className={`${inter.className} transition-all duration-300 ease-out`}>
+        <div className="transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]">
+          {children}
+        </div>
         <Toaster 
-          position="top-right"
+          position="top-center"
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#363636',
-              color: '#fff',
+              background: '#fff',
+              color: '#333',
+              border: '1px solid #e5e7eb',
+              borderRadius: '16px',
+              fontSize: '14px',
+              fontWeight: '500',
+              padding: '16px 20px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              backdropFilter: 'blur(8px)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
             },
           }}
         />

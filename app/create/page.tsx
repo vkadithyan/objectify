@@ -153,56 +153,6 @@ export default function CreatePostPage() {
         if (postResponse.ok) {
           const postData = await postResponse.json()
           toast.success('Post created successfully!')
-          router.push('/feed')
-          return
-        }
-      }
-      
-      // Demo mode: simulate successful post creation
-      toast.success('Demo post created! (Login to save permanently)')
-      router.push('/feed')
-      
-    } catch (error) {
-      console.error('Error creating post:', error)
-      // In demo mode, still show success
-      toast.success('Demo post created! (Login to save permanently)')
-      router.push('/feed')
-    } finally {
-      setIsPosting(false)
-    }
-  }, [selectedMood, generatedStory, imagePreview, router])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!imageFile || !selectedMood || !generatedStory.trim()) {
-      toast.error('Please fill in all fields')
-      return
-    }
-
-    setIsPosting(true)
-    
-    try {
-      const token = localStorage.getItem('token')
-      
-      // Try to create post with API if token exists, otherwise simulate success
-      if (token) {
-        const formData = new FormData()
-        formData.append('image', imageFile)
-        formData.append('mood', selectedMood)
-        formData.append('story', generatedStory)
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        })
-
-        if (response.ok) {
-          const newPost = await response.json()
-          toast.success('Post created successfully!')
           
           // Reset form and redirect
           setImageFile(null)
@@ -229,12 +179,14 @@ export default function CreatePostPage() {
         createdAt: new Date().toISOString()
       }
       
-      // Save to localStorage
+      // Save to localStorage - this will appear at the top of the feed
       const existingPosts = JSON.parse(localStorage.getItem('userPosts') || '[]')
-      const updatedPosts = [newPost, ...existingPosts]
+      const updatedPosts = [newPost, ...existingPosts] // New post goes first
       localStorage.setItem('userPosts', JSON.stringify(updatedPosts))
       
-      toast.success('Demo post created! (Login to save permanently)')
+      console.log('✅ Post saved to localStorage:', newPost)
+      
+      toast.success('🎉 Post created! Check it out at the top of your feed!')
       
       // Reset form
       setImageFile(null)
@@ -243,13 +195,32 @@ export default function CreatePostPage() {
       setGeneratedStory('')
       setIsGenerating(false)
       
-      // Redirect to feed
-      router.push('/feed')
+      // Redirect to feed immediately to see the new post
+      setTimeout(() => {
+        router.push('/feed')
+      }, 1000) // Small delay to show success message
       
     } catch (error) {
       console.error('[ERROR] Error creating post:', error)
-      // In demo mode, still show success
-      toast.success('Demo post created! (Login to save permanently)')
+      // In demo mode, still show success and save to localStorage
+      const newPost = {
+        id: Date.now().toString(),
+        userId: 'demo_user',
+        username: 'You',
+        userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        imageUrl: imagePreview,
+        mood: selectedMood,
+        story: generatedStory,
+        likes: [],
+        comments: [],
+        createdAt: new Date().toISOString()
+      }
+      
+      const existingPosts = JSON.parse(localStorage.getItem('userPosts') || '[]')
+      const updatedPosts = [newPost, ...existingPosts]
+      localStorage.setItem('userPosts', JSON.stringify(updatedPosts))
+      
+      toast.success('🎉 Post created! Check it out at the top of your feed!')
       
       // Reset form and redirect
       setImageFile(null)
@@ -257,16 +228,31 @@ export default function CreatePostPage() {
       setSelectedMood('')
       setGeneratedStory('')
       setIsGenerating(false)
-      router.push('/feed')
+      
+      setTimeout(() => {
+        router.push('/feed')
+      }, 1000)
     } finally {
       setIsPosting(false)
     }
-  }
+  }, [selectedMood, generatedStory, imagePreview, imageFile, router])
+
+
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="min-h-screen bg-gray-50"
+    >
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <motion.header 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="bg-white shadow-sm border-b"
+      >
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -282,7 +268,7 @@ export default function CreatePostPage() {
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {/* Progress Steps */}
       <div className="max-w-4xl mx-auto px-4 py-6">
@@ -528,6 +514,6 @@ export default function CreatePostPage() {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

@@ -8,6 +8,19 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, Clock } from 'lucide-reac
 import { Post } from '@/types/post'
 import { formatDistanceToNow } from 'date-fns'
 
+// Safe date formatting function to handle invalid dates
+const formatTimeAgo = (dateValue: string | Date) => {
+  try {
+    const date = new Date(dateValue)
+    if (isNaN(date.getTime())) {
+      return 'just now'
+    }
+    return formatDistanceToNow(date, { addSuffix: true })
+  } catch (error) {
+    return 'just now'
+  }
+}
+
 interface PostCardProps {
   post: Post
   onLike: (postId: string) => void
@@ -73,8 +86,16 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
   return (
     <motion.div
       className="card overflow-hidden"
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ 
+        duration: 0.3,
+        ease: [0.25, 0.46, 0.45, 0.94],
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }}
     >
       {/* Post Header */}
       <div className="p-6 pb-4">
@@ -86,12 +107,17 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
               width={40}
               height={40}
               className="rounded-full"
+              onError={(e) => {
+                // Fallback to a default avatar if the original fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face';
+              }}
             />
             <div>
               <h3 className="font-semibold text-gray-900">{post.username}</h3>
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <Clock className="w-4 h-4" />
-                <span>{formatDistanceToNow(post.createdAt, { addSuffix: true })}</span>
+                <span>{formatTimeAgo(post.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -102,26 +128,51 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
       </div>
 
       {/* Post Image - Clickable and Clear */}
-      <Link href={`/post/${post.id}`} className="block relative cursor-pointer group">
-        <Image
-          src={post.imageUrl}
-          alt="Object"
-          width={600}
-          height={600}
-          className="w-full h-80 object-cover group-hover:opacity-95 transition-opacity"
-          priority
-        />
-        <div className="absolute top-4 right-4">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${moodColors[post.mood]} backdrop-blur-sm`}>
+      <Link href={`/post/${post.id}`} className="block relative cursor-pointer group overflow-hidden">
+        <motion.div
+          whileHover={{ scale: 1.03 }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          <Image
+            src={post.imageUrl}
+            alt="Object"
+            width={600}
+            height={600}
+            className="w-full h-80 object-cover transition-all duration-500 ease-out group-hover:brightness-110"
+            priority
+            onError={(e) => {
+              // Fallback to a placeholder image if the original fails to load
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=600&h=600&fit=crop';
+            }}
+          />
+        </motion.div>
+        <motion.div 
+          className="absolute top-4 right-4"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${moodColors[post.mood]} backdrop-blur-sm shadow-lg`}>
             {moodEmojis[post.mood]} {post.mood}
           </span>
-        </div>
+        </motion.div>
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-3">
-            <span className="text-sm font-medium text-gray-800">View Details</span>
-          </div>
-        </div>
+        <motion.div 
+          className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <motion.div 
+            className="bg-white/95 backdrop-blur-sm rounded-full px-6 py-3 shadow-xl"
+            initial={{ scale: 0.8, y: 10 }}
+            whileHover={{ scale: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <span className="text-sm font-semibold text-gray-800">View Details</span>
+          </motion.div>
+        </motion.div>
       </Link>
 
       {/* Post Actions */}
@@ -130,10 +181,16 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
           <div className="flex items-center space-x-4">
             <motion.button
               onClick={handleLike}
-              className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 p-2 rounded-lg transition-all duration-300 ${
                 isLiked ? 'text-red-500 bg-red-50' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'
               }`}
+              whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 17
+              }}
             >
               <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
               <span className="font-medium">{post.likes.length}</span>
@@ -141,8 +198,14 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
 
             <motion.button
               onClick={() => setShowComments(!showComments)}
-              className="flex items-center space-x-2 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+              className="flex items-center space-x-2 p-2 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-all duration-300"
+              whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 17
+              }}
             >
               <MessageCircle className="w-6 h-6" />
               <span className="font-medium">{post.comments.length}</span>
@@ -150,8 +213,14 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
 
             <motion.button
               onClick={handleShare}
-              className="p-2 rounded-lg text-gray-500 hover:text-green-500 hover:bg-green-50 transition-colors"
+              className="p-2 rounded-lg text-gray-500 hover:text-green-500 hover:bg-green-50 transition-all duration-300"
+              whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 17
+              }}
             >
               <Share2 className="w-6 h-6" />
             </motion.button>
@@ -183,7 +252,7 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
                       <div className="flex items-center space-x-2 mb-1">
                         <span className="font-medium text-sm text-gray-900">{comment.username}</span>
                         <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+                          {formatTimeAgo(comment.createdAt)}
                         </span>
                       </div>
                       <p className="text-sm text-gray-700">{comment.text}</p>
