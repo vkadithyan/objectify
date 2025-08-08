@@ -60,24 +60,79 @@ export default function FeedPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setPosts(mockPosts)
-      setIsLoading(false)
-    }, 1000)
+    const fetchPosts = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setPosts(data.posts || [])
+        } else {
+          // Fallback to mock posts if API fails
+          console.warn('Failed to fetch posts from API, using mock data')
+          setPosts(mockPosts)
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error)
+        // Fallback to mock posts if API fails
+        setPosts(mockPosts)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPosts()
   }, [])
 
-  const handleLike = (postId: string) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === postId 
-          ? { ...post, likes: post.likes.includes('currentUser') 
-              ? post.likes.filter(id => id !== 'currentUser')
-              : [...post.likes, 'currentUser']
-            }
-          : post
+  const handleLike = async (postId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts/${postId}/like`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: data.likes }
+              : post
+          )
+        )
+      } else {
+        // Fallback to client-side toggle if API fails
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId 
+              ? { ...post, likes: post.likes.includes('currentUser') 
+                  ? post.likes.filter(id => id !== 'currentUser')
+                  : [...post.likes, 'currentUser']
+                }
+              : post
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Error liking post:', error)
+      // Fallback to client-side toggle if API fails
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, likes: post.likes.includes('currentUser') 
+                ? post.likes.filter(id => id !== 'currentUser')
+                : [...post.likes, 'currentUser']
+              }
+            : post
+        )
       )
-    )
+    }
   }
 
   if (isLoading) {

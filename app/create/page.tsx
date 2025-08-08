@@ -64,15 +64,55 @@ export default function CreatePostPage() {
     setIsGenerating(true)
     
     try {
-      // TODO: Implement actual AI story generation
-      // This would typically involve:
-      // 1. Upload image to Cloudinary
-      // 2. Call OpenAI API with image URL and mood
-      // 3. Return generated story
+      // Step 1: Upload image to Cloudinary
+      const formData = new FormData()
+      formData.append('image', imageFile)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      })
       
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image')
+      }
+      
+      const uploadData = await uploadResponse.json()
+      const imageUrl = uploadData.imageUrl
+      
+      // Step 2: Generate AI story using the uploaded image URL
+      const storyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/generate-story`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+          mood: selectedMood
+        })
+      })
+      
+      if (!storyResponse.ok) {
+        throw new Error('Failed to generate story')
+      }
+      
+      const storyData = await storyResponse.json()
+      setGeneratedStory(storyData.story)
+      
+      // Update image preview with the uploaded URL
+      setImagePreview(imageUrl)
+      
+      setStep('preview')
+      toast.success('Story generated successfully!')
+    } catch (error) {
+      console.error('Error generating story:', error)
+      toast.error('Failed to generate story. Please try again.')
+      
+      // Fallback to mock stories if API fails
       const mockStories = {
         happy: "This object is absolutely beaming with joy today! It's been waiting for this moment to shine and share its positive energy with the world. The way it catches the light makes it feel like it's doing a little happy dance! ✨",
         sad: "This object seems to be having a melancholic moment. Maybe it's missing its companion or feeling a bit lonely today. But even in its sadness, there's a quiet beauty that speaks to the soul.",
@@ -84,32 +124,43 @@ export default function CreatePostPage() {
         curious: "This object has that spark of curiosity in its eyes (if it had eyes!). It's like it's constantly asking 'what if?' and exploring the world with wonder and amazement."
       }
       
-      setGeneratedStory(mockStories[selectedMood])
+      setGeneratedStory(mockStories[selectedMood as keyof typeof mockStories] || mockStories.happy)
       setStep('preview')
-    } catch (error) {
-      toast.error('Failed to generate story. Please try again.')
     } finally {
       setIsGenerating(false)
     }
   }
 
   const handlePost = async () => {
-    if (!imageFile || !selectedMood || !generatedStory) return
+    if (!selectedMood || !generatedStory || !imagePreview) return
 
     setIsPosting(true)
     
     try {
-      // TODO: Implement actual post creation
-      // This would typically involve:
-      // 1. Upload image to Cloudinary
-      // 2. Save post to database
-      // 3. Redirect to feed
+      // Create post using the already uploaded image URL and generated story
+      const postResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          imageUrl: imagePreview, // This is now the Cloudinary URL from the upload
+          mood: selectedMood,
+          story: generatedStory
+        })
+      })
       
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!postResponse.ok) {
+        throw new Error('Failed to create post')
+      }
+      
+      const postData = await postResponse.json()
       
       toast.success('Post created successfully!')
       router.push('/feed')
     } catch (error) {
+      console.error('Error creating post:', error)
       toast.error('Failed to create post. Please try again.')
     } finally {
       setIsPosting(false)
