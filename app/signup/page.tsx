@@ -40,12 +40,36 @@ export default function SignupPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Implement actual signup logic with Firebase Auth
-      console.log('Signup data:', formData)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Registration failed')
+      }
+      
+      const data = await response.json()
+      
+      // Store JWT token in localStorage
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
       toast.success('Account created successfully!')
-      // Redirect to feed or onboarding
+      
+      // Redirect to feed
+      window.location.href = '/feed'
     } catch (error) {
-      toast.error('Failed to create account. Please try again.')
+      console.error('Signup error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create account. Please try again.')
     } finally {
       setIsLoading(false)
     }

@@ -86,8 +86,8 @@ export default function LandingPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Link href="/signup" className="btn-primary text-lg px-8 py-4 inline-flex items-center">
-                  Start Creating
+                <Link href="/create" className="btn-primary text-lg px-8 py-4 inline-flex items-center">
+                  Try Demo - Start Creating
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </motion.div>
@@ -100,6 +100,15 @@ export default function LandingPage() {
                 </Link>
               </motion.div>
             </div>
+            
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="mt-6 text-sm text-gray-500"
+            >
+              ✨ No login required! Try the demo with pre-populated stories and AI generation
+            </motion.div>
           </motion.div>
 
           {/* Floating Objects Animation */}

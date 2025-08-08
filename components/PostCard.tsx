@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Heart, MessageCircle, Share2, MoreHorizontal, Clock } from 'lucide-react'
 import { Post } from '@/types/post'
 import { formatDistanceToNow } from 'date-fns'
@@ -21,7 +22,13 @@ const moodEmojis: Record<string, string> = {
   contemplative: '🤔',
   energetic: '⚡',
   calm: '🧘',
-  curious: '🤨'
+  curious: '🤨',
+  cool: '😎',
+  warm: '🌞',
+  cozy: '☕',
+  nostalgic: '📸',
+  organized: '📐',
+  reflective: '🪞'
 }
 
 const moodColors: Record<string, string> = {
@@ -32,7 +39,13 @@ const moodColors: Record<string, string> = {
   contemplative: 'bg-purple-100 text-purple-800',
   energetic: 'bg-red-100 text-red-800',
   calm: 'bg-teal-100 text-teal-800',
-  curious: 'bg-pink-100 text-pink-800'
+  curious: 'bg-pink-100 text-pink-800',
+  cool: 'bg-indigo-100 text-indigo-800',
+  warm: 'bg-amber-100 text-amber-800',
+  cozy: 'bg-brown-100 text-brown-800',
+  nostalgic: 'bg-sepia-100 text-sepia-800',
+  organized: 'bg-gray-100 text-gray-800',
+  reflective: 'bg-slate-100 text-slate-800'
 }
 
 export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
@@ -88,21 +101,28 @@ export default function PostCard({ post, onLike, isLiked }: PostCardProps) {
         </div>
       </div>
 
-      {/* Post Image */}
-      <div className="relative">
+      {/* Post Image - Clickable and Clear */}
+      <Link href={`/post/${post.id}`} className="block relative cursor-pointer group">
         <Image
           src={post.imageUrl}
           alt="Object"
           width={600}
           height={600}
-          className="w-full object-cover"
+          className="w-full h-80 object-cover group-hover:opacity-95 transition-opacity"
+          priority
         />
         <div className="absolute top-4 right-4">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${moodColors[post.mood]}`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${moodColors[post.mood]} backdrop-blur-sm`}>
             {moodEmojis[post.mood]} {post.mood}
           </span>
         </div>
-      </div>
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90 rounded-full p-3">
+            <span className="text-sm font-medium text-gray-800">View Details</span>
+          </div>
+        </div>
+      </Link>
 
       {/* Post Actions */}
       <div className="p-6 pt-4">

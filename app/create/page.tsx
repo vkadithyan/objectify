@@ -58,110 +58,206 @@ export default function CreatePostPage() {
     setStep('generate')
   }
 
-  const generateStory = async () => {
+  const generateStory = useCallback(async () => {
     if (!imageFile || !selectedMood) return
 
     setIsGenerating(true)
+    setGeneratedStory('')
     
     try {
-      // Step 1: Upload image to Cloudinary
-      const formData = new FormData()
-      formData.append('image', imageFile)
+      const token = localStorage.getItem('token')
       
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/upload/image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      })
-      
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image')
-      }
-      
-      const uploadData = await uploadResponse.json()
-      const imageUrl = uploadData.imageUrl
-      
-      // Step 2: Generate AI story using the uploaded image URL
-      const storyResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/generate-story`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          imageUrl: imageUrl,
-          mood: selectedMood
+      // Try API if token exists
+      if (token) {
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        formData.append('mood', selectedMood)
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/ai/generate-story`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
         })
-      })
-      
-      if (!storyResponse.ok) {
-        throw new Error('Failed to generate story')
+
+        if (response.ok) {
+          const data = await response.json()
+          setGeneratedStory(data.story)
+          setStep('preview')
+          return
+        }
       }
       
-      const storyData = await storyResponse.json()
-      setGeneratedStory(storyData.story)
+      // Fallback to demo story generation
+      const demoStories = {
+        happy: "This object is radiating pure joy today! It's been waiting for this moment to shine and share its happiness with the world. Every curve and detail seems to sparkle with delight! ✨",
+        sad: "This object carries a melancholy beauty today. It has stories of quiet moments and gentle tears, but there's wisdom in its sadness that makes it deeply meaningful. 💙",
+        excited: "This object is absolutely buzzing with excitement! It can barely contain its enthusiasm and is ready to embark on the most amazing adventure. The energy is contagious! 🚀",
+        peaceful: "This object has found its zen today. It radiates calm and tranquility, like a gentle breeze on a quiet morning. Its presence brings instant serenity. 🕊️",
+        contemplative: "This object is deep in thought today, pondering life's mysteries and beautiful complexities. Its quiet wisdom speaks volumes without saying a word. 🤔",
+        energetic: "This object is charged up and ready to take on the world! Its dynamic energy is infectious and inspiring. Nothing can slow it down today! ⚡",
+        calm: "This object embodies perfect stillness and peace. It's like a meditation in physical form, bringing balance and harmony to everything around it. 🧘",
+        curious: "This object is fascinated by everything around it today! Its curiosity is boundless, always wondering, always exploring, always learning something new. 🔍"
+      }
       
-      // Update image preview with the uploaded URL
-      setImagePreview(imageUrl)
-      
+      setGeneratedStory(demoStories[selectedMood] || demoStories.happy)
       setStep('preview')
-      toast.success('Story generated successfully!')
+      toast.success('Demo story generated! (Login for AI-powered stories)')
+      
     } catch (error) {
-      console.error('Error generating story:', error)
-      toast.error('Failed to generate story. Please try again.')
-      
-      // Fallback to mock stories if API fails
-      const mockStories = {
-        happy: "This object is absolutely beaming with joy today! It's been waiting for this moment to shine and share its positive energy with the world. The way it catches the light makes it feel like it's doing a little happy dance! ✨",
-        sad: "This object seems to be having a melancholic moment. Maybe it's missing its companion or feeling a bit lonely today. But even in its sadness, there's a quiet beauty that speaks to the soul.",
-        excited: "WOW! This object is practically vibrating with excitement! It's like it just won the lottery or discovered a superpower. The energy is contagious - you can almost feel it buzzing with anticipation! 🚀",
-        peaceful: "There's such a serene calmness about this object today. It's like it's found its zen moment, floating in a state of perfect tranquility. The peace it radiates is almost meditative.",
-        contemplative: "This object appears to be deep in thought, pondering the mysteries of the universe. It's having one of those philosophical moments where everything makes sense and nothing makes sense at the same time.",
-        energetic: "This object is bursting with life and energy! It's like it just had three cups of coffee and is ready to take on the world. The dynamic vibes are off the charts! ⚡",
-        calm: "There's a gentle, soothing presence about this object. It's like a warm hug or a soft lullaby - just being near it brings a sense of inner peace and relaxation.",
-        curious: "This object has that spark of curiosity in its eyes (if it had eyes!). It's like it's constantly asking 'what if?' and exploring the world with wonder and amazement."
+      console.error('[ERROR] Error generating story:', error)
+      // Always fallback to demo stories
+      const demoStories = {
+        happy: "This object is radiating pure joy today! ✨",
+        sad: "This object carries a melancholy beauty today. 💙",
+        excited: "This object is absolutely buzzing with excitement! 🚀",
+        peaceful: "This object has found its zen today. 🕊️",
+        contemplative: "This object is deep in thought today. 🤔",
+        energetic: "This object is charged up and ready! ⚡",
+        calm: "This object embodies perfect stillness. 🧘",
+        curious: "This object is fascinated by everything! 🔍"
       }
       
-      setGeneratedStory(mockStories[selectedMood as keyof typeof mockStories] || mockStories.happy)
+      setGeneratedStory(demoStories[selectedMood] || demoStories.happy)
       setStep('preview')
+      toast.success('Demo story generated!')
     } finally {
       setIsGenerating(false)
     }
-  }
+  }, [imageFile, selectedMood])
 
-  const handlePost = async () => {
+  const handlePost = useCallback(async () => {
     if (!selectedMood || !generatedStory || !imagePreview) return
 
     setIsPosting(true)
     
     try {
-      // Create post using the already uploaded image URL and generated story
-      const postResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          imageUrl: imagePreview, // This is now the Cloudinary URL from the upload
-          mood: selectedMood,
-          story: generatedStory
-        })
-      })
+      const token = localStorage.getItem('token')
       
-      if (!postResponse.ok) {
-        throw new Error('Failed to create post')
+      // Try API if token exists
+      if (token) {
+        const postResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            imageUrl: imagePreview,
+            mood: selectedMood,
+            story: generatedStory
+          })
+        })
+        
+        if (postResponse.ok) {
+          const postData = await postResponse.json()
+          toast.success('Post created successfully!')
+          router.push('/feed')
+          return
+        }
       }
       
-      const postData = await postResponse.json()
-      
-      toast.success('Post created successfully!')
+      // Demo mode: simulate successful post creation
+      toast.success('Demo post created! (Login to save permanently)')
       router.push('/feed')
+      
     } catch (error) {
       console.error('Error creating post:', error)
-      toast.error('Failed to create post. Please try again.')
+      // In demo mode, still show success
+      toast.success('Demo post created! (Login to save permanently)')
+      router.push('/feed')
+    } finally {
+      setIsPosting(false)
+    }
+  }, [selectedMood, generatedStory, imagePreview, router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!imageFile || !selectedMood || !generatedStory.trim()) {
+      toast.error('Please fill in all fields')
+      return
+    }
+
+    setIsPosting(true)
+    
+    try {
+      const token = localStorage.getItem('token')
+      
+      // Try to create post with API if token exists, otherwise simulate success
+      if (token) {
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        formData.append('mood', selectedMood)
+        formData.append('story', generatedStory)
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/posts`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        })
+
+        if (response.ok) {
+          const newPost = await response.json()
+          toast.success('Post created successfully!')
+          
+          // Reset form and redirect
+          setImageFile(null)
+          setImagePreview('')
+          setSelectedMood('')
+          setGeneratedStory('')
+          setIsGenerating(false)
+          router.push('/feed')
+          return
+        }
+      }
+      
+      // Demo mode: create and save post to localStorage
+      const newPost = {
+        id: Date.now().toString(),
+        userId: 'demo_user',
+        username: 'You',
+        userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        imageUrl: imagePreview, // This contains the base64 data URL from the uploaded image
+        mood: selectedMood,
+        story: generatedStory,
+        likes: [],
+        comments: [],
+        createdAt: new Date().toISOString()
+      }
+      
+      // Save to localStorage
+      const existingPosts = JSON.parse(localStorage.getItem('userPosts') || '[]')
+      const updatedPosts = [newPost, ...existingPosts]
+      localStorage.setItem('userPosts', JSON.stringify(updatedPosts))
+      
+      toast.success('Demo post created! (Login to save permanently)')
+      
+      // Reset form
+      setImageFile(null)
+      setImagePreview('')
+      setSelectedMood('')
+      setGeneratedStory('')
+      setIsGenerating(false)
+      
+      // Redirect to feed
+      router.push('/feed')
+      
+    } catch (error) {
+      console.error('[ERROR] Error creating post:', error)
+      // In demo mode, still show success
+      toast.success('Demo post created! (Login to save permanently)')
+      
+      // Reset form and redirect
+      setImageFile(null)
+      setImagePreview('')
+      setSelectedMood('')
+      setGeneratedStory('')
+      setIsGenerating(false)
+      router.push('/feed')
     } finally {
       setIsPosting(false)
     }
@@ -275,16 +371,53 @@ export default function CreatePostPage() {
                 {moods.map((mood) => (
                   <motion.button
                     key={mood.value}
-                    onClick={() => handleMoodSelect(mood.value)}
-                    className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 text-center"
+                    type="button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedMood(mood.value)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      selectedMood === mood.value
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   >
                     <div className="text-3xl mb-2">{mood.emoji}</div>
-                    <div className="font-medium text-gray-900">{mood.label}</div>
+                    <div className="text-sm font-medium">{mood.label}</div>
                   </motion.button>
                 ))}
               </div>
+              {selectedMood && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 text-center space-y-4"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Randomly select a different mood
+                      const otherMoods = moods.filter(m => m.value !== selectedMood)
+                      const randomMood = otherMoods[Math.floor(Math.random() * otherMoods.length)]
+                      setSelectedMood(randomMood.value)
+                    }}
+                    className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                  >
+                    🎲 Try a different emotion
+                  </button>
+                  
+                  <div>
+                    <motion.button
+                      onClick={() => setStep('generate')}
+                      className="btn-primary inline-flex items-center px-6 py-3"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Continue to Story Generation
+                      <Wand2 className="w-4 h-4 ml-2" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           )}
 

@@ -26,12 +26,32 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Implement actual login logic with Firebase Auth
-      console.log('Login data:', formData)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Login failed')
+      }
+      
+      const data = await response.json()
+      
+      // Store JWT token in localStorage
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
       toast.success('Logged in successfully!')
+      
       // Redirect to feed
+      window.location.href = '/feed'
     } catch (error) {
-      toast.error('Invalid email or password')
+      console.error('Login error:', error)
+      toast.error(error instanceof Error ? error.message : 'Invalid email or password')
     } finally {
       setIsLoading(false)
     }

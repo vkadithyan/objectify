@@ -6,7 +6,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const connectDB = require('./config/database');
+const { connectDB } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const uploadRoutes = require('./routes/upload');

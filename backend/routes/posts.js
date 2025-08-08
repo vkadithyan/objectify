@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Post = require('../models/Post');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { isMongoConnected, getInMemoryPosts, addInMemoryPost, updateInMemoryPostLikes } = require('../config/database');
 
 const router = express.Router();
 
@@ -15,23 +16,41 @@ router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('userId', 'username avatar');
+    if (isMongoConnected()) {
+      // Use MongoDB
+      const posts = await Post.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('userId', 'username avatar');
 
-    const total = await Post.countDocuments();
+      const total = await Post.countDocuments();
 
-    res.json({
-      posts,
-      pagination: {
-        current: page,
-        total: Math.ceil(total / limit),
-        hasNext: skip + posts.length < total,
-        hasPrev: page > 1
-      }
-    });
+      res.json({
+        posts,
+        pagination: {
+          current: page,
+          total: Math.ceil(total / limit),
+          hasNext: skip + posts.length < total,
+          hasPrev: page > 1
+        }
+      });
+    } else {
+      // Use in-memory storage
+      const allPosts = getInMemoryPosts();
+      const posts = allPosts.slice(skip, skip + limit);
+      const total = allPosts.length;
+
+      res.json({
+        posts,
+        pagination: {
+          current: page,
+          total: Math.ceil(total / limit),
+          hasNext: skip + posts.length < total,
+          hasPrev: page > 1
+        }
+      });
+    }
   } catch (error) {
     console.error('Error fetching posts:', error);
     res.status(500).json({ error: 'Server error' });
@@ -80,21 +99,40 @@ router.post('/', [
     }
 
     const { imageUrl, mood, story } = req.body;
-    const user = await User.findById(req.user.id);
 
-    const newPost = new Post({
-      userId: req.user.id,
-      username: user.username,
-      userAvatar: user.avatar,
-      imageUrl,
-      mood,
-      story
-    });
+    if (isMongoConnected()) {
+      // Use MongoDB
+      const user = await User.findById(req.user.id);
 
-    const post = await newPost.save();
-    await post.populate('userId', 'username avatar');
+      const newPost = new Post({
+        userId: req.user.id,
+        username: user.username,
+        userAvatar: user.avatar,
+        imageUrl,
+        mood,
+        story
+      });
 
-    res.status(201).json(post);
+      const post = await newPost.save();
+      await post.populate('userId', 'username avatar');
+
+      res.status(201).json(post);
+    } else {
+      // Use in-memory storage
+      const newPost = {
+        userId: req.user?.id || 'demo-user',
+        username: req.user?.username || 'demo_user',
+        userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        imageUrl,
+        mood,
+        story,
+        likes: [],
+        comments: []
+      };
+
+      const createdPost = addInMemoryPost(newPost);
+      res.status(201).json(createdPost);
+    }
   } catch (error) {
     console.error('Error creating post:', error);
     res.status(500).json({ error: 'Server error' });
